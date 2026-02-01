@@ -7,67 +7,78 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #fbcfe8; /* Pinkish background */
+            background-color: #fbcfe8;
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             text-align: center;
             color: #d63384;
+            overflow: hidden;
         }
         h1 {
             font-size: 2em;
+            margin: 0.5em 0;
         }
         .photos {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            gap: 15px;
         }
         .photos img {
-            width: 150px;
-            height: 150px;
+            width: 140px;
+            height: 140px;
             object-fit: cover;
-            margin: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .buttons {
             position: relative;
-            width: 300px;
+            width: 320px;
             height: 100px;
+            margin: 20px 0;
         }
         button {
-            padding: 10px 20px;
-            font-size: 1.2em;
+            padding: 14px 28px;
+            font-size: 1.3em;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
+            touch-action: manipulation;
         }
         #yesBtn {
-            background-color: #22c55e; /* Green */
+            background-color: #22c55e;
             color: white;
             position: absolute;
             left: 0;
+            z-index: 2;
         }
         #noBtn {
-            background-color: #ef4444; /* Red */
+            background-color: #ef4444;
             color: white;
             position: absolute;
             right: 0;
+            z-index: 1;
         }
         #yayScreen {
             display: none;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            height: 100vh;
+            position: relative;
         }
         #yayScreen h1 {
-            font-size: 3em;
+            font-size: 3.5em;
             color: #ec4899;
+            z-index: 10;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         canvas {
             position: absolute;
@@ -77,46 +88,72 @@
             height: 100%;
             z-index: -1;
         }
+
+        /* Mobile improvements */
+        @media (max-width: 500px) {
+            h1 { font-size: 1.8em; }
+            .photos img { width: 120px; height: 120px; }
+            .buttons { width: 90vw; height: 120px; }
+            button { padding: 16px 32px; font-size: 1.5em; }
+        }
     </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
     <div id="mainScreen">
         <h1>Deesha, will you be my Valentine?</h1>
         <div class="photos">
-            <!-- Add your cute photo URLs here. Upload to Imgur for free links. -->
-            <img src="IMG_6264.jpeg" alt="photo 1">
-            <img src="IMG_6475.jpeg" alt="photo 2">
-            <img src="IMG_6885.JPG" alt="photo 3">
-            <!-- Add more <img> tags to update photos -->
+            <img src="IMG_6264.jpeg" alt="Us being cute">
+            <img src="IMG_6475.jpeg" alt="Our favorite moment">
+            <img src="IMG_6885.JPG"  alt="Smiling together">
+            <!-- Add more here if you want: <img src="IMG_xxxx.jpeg" alt="..."> -->
         </div>
         <div class="buttons">
             <button id="yesBtn">Yes</button>
             <button id="noBtn">No</button>
         </div>
     </div>
+
     <div id="yayScreen">
-        <h1>Yayyy! 🎉 I love you!</h1>
+        <h1>Yayyy! 🎉 I love you Deesha!</h1>
         <canvas id="fireworks"></canvas>
     </div>
 
     <script>
-        // Button logic
+        // EmailJS – your real keys
+        emailjs.init("3KN6x_wdX-Or0rt0D");
+
         let yesSize = 1;
         const yesBtn = document.getElementById('yesBtn');
         const noBtn = document.getElementById('noBtn');
         const mainScreen = document.getElementById('mainScreen');
         const yayScreen = document.getElementById('yayScreen');
 
-        noBtn.addEventListener('mouseover', moveNo);
-        noBtn.addEventListener('touchstart', moveNo); // For mobile
+        // Better mobile + desktop handling
+        noBtn.addEventListener('pointerenter', moveNo);
 
         function moveNo() {
-            const randomX = Math.random() * 200 - 100;
-            const randomY = Math.random() * 100 - 50;
+            const isMobile = window.innerWidth < 600;
+            const rangeX = isMobile ? 120 : 180;
+            const rangeY = isMobile ? 70  : 100;
+
+            let randomX = (Math.random() - 0.5) * rangeX;
+            let randomY = (Math.random() - 0.5) * rangeY;
+
+            // Simple clamp: don't let it go too far off-screen
+            const rect = noBtn.getBoundingClientRect();
+            const maxMoveLeft  = -rect.left + 30;
+            const maxMoveRight = window.innerWidth - rect.right - 30;
+            const maxMoveUp    = -rect.top + 30;
+            const maxMoveDown  = window.innerHeight - rect.bottom - 30;
+
+            randomX = Math.max(Math.min(randomX, maxMoveRight), maxMoveLeft);
+            randomY = Math.max(Math.min(randomY, maxMoveDown), maxMoveUp);
+
             noBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
+
             // Grow Yes button
-            yesSize += 0.2;
+            yesSize += 0.22;
             yesBtn.style.transform = `scale(${yesSize})`;
         }
 
@@ -127,22 +164,18 @@
             sendEmail();
         });
 
-        // EmailJS setup (replace placeholders)
-        emailjs.init('3KN6x_wdX-Or0rt0D');
-
         function sendEmail() {
             emailjs.send('service_xap7wor', 'template_oxqgssd', {
-                from_name: 'Deesha',
-                message: 'Deesha clicked Yes!'
-            }).then(() => {
-                console.log('Email sent!');
-            }, (error) => {
-                console.log('Email failed:', error);
-            });
+                from_name: 'Deesha 💕',
+                message: 'Deesha clicked YES!! 🎉'
+            }).then(
+                () => console.log('Email sent successfully!'),
+                (error) => console.error('Email failed:', error)
+            );
         }
 
-        
-        // Fireworks animation (simple canvas version)
+        // ────────────────────────────────────────────────
+        // Fireworks (unchanged – works great)
         const canvas = document.getElementById('fireworks');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -150,9 +183,7 @@
 
         class Particle {
             constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
+                this.x = x; this.y = y; this.color = color;
                 this.velocity = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 };
                 this.alpha = 1;
                 this.friction = 0.99;
@@ -160,7 +191,7 @@
             draw() {
                 ctx.globalAlpha = this.alpha;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2, false);
+                ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
             }
@@ -169,28 +200,26 @@
                 this.velocity.y *= this.friction;
                 this.x += this.velocity.x;
                 this.y += this.velocity.y;
-                this.alpha -= 0.01;
+                this.alpha -= 0.008;
             }
         }
 
         class Firework {
             constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                this.velocity = { x: 0, y: Math.random() * -2.5 - 0.5 };
+                this.x = x; this.y = y; this.color = color;
+                this.velocity = { x: 0, y: Math.random() * -3 - 1 };
                 this.particles = [];
-                this.lifespan = 180;
+                this.lifespan = 160;
                 this.hasExploded = false;
             }
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2, false);
+                ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
             }
             explode() {
-                for (let i = 0; i < 50; i++) {
+                for (let i = 0; i < 60; i++) {
                     this.particles.push(new Particle(this.x, this.y, this.color));
                 }
             }
@@ -198,15 +227,11 @@
                 this.lifespan--;
                 if (this.lifespan <= 0 && !this.hasExploded) {
                     this.explode();
-                    this.velocity = { x: 0, y: 0 };
                     this.hasExploded = true;
                 } else if (this.lifespan > 0) {
                     this.y += this.velocity.y;
                 }
-                this.particles.forEach(p => {
-                    p.update();
-                    p.draw();
-                });
+                this.particles.forEach(p => { p.update(); p.draw(); });
             }
         }
 
@@ -214,18 +239,20 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            fireworks.forEach((fw, index) => {
+
+            fireworks.forEach((fw, i) => {
                 fw.update();
                 fw.draw();
                 if (fw.lifespan <= 0 && fw.particles.every(p => p.alpha <= 0)) {
-                    fireworks.splice(index, 1);
+                    fireworks.splice(i, 1);
                 }
             });
-            if (Math.random() < 0.015) {
+
+            if (Math.random() < 0.018) {
                 const x = Math.random() * canvas.width;
-                const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
+                const color = `hsl(${Math.random()*360}, 70%, 60%)`;
                 fireworks.push(new Firework(x, canvas.height, color));
             }
         }
@@ -233,6 +260,12 @@
         function startFireworks() {
             animate();
         }
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
     </script>
 </body>
 </html>
