@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Will You Be My Valentine?</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fbcfe8; /* Pinkish background */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            color: #d63384;
+        }
+        h1 {
+            font-size: 2em;
+        }
+        .photos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .photos img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .buttons {
+            position: relative;
+            width: 300px;
+            height: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        #yesBtn {
+            background-color: #22c55e; /* Green */
+            color: white;
+            position: absolute;
+            left: 0;
+        }
+        #noBtn {
+            background-color: #ef4444; /* Red */
+            color: white;
+            position: absolute;
+            right: 0;
+        }
+        #yayScreen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        #yayScreen h1 {
+            font-size: 3em;
+            color: #ec4899;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+    </style>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+    <div id="mainScreen">
+        <h1>Deesha, will you be my Valentine?</h1>
+        <div class="photos">
+            <!-- Add your cute photo URLs here. Upload to Imgur for free links. -->
+            <img src="images/IMG_6264.jpeg" alt="photo 1">
+            <img src="images/IMG_6475.jpeg" alt="photo 2">
+            <img src="images/IMG_6885.jpg" alt="photo 3">
+            <!-- Add more <img> tags to update photos -->
+        </div>
+        <div class="buttons">
+            <button id="yesBtn">Yes</button>
+            <button id="noBtn">No</button>
+        </div>
+    </div>
+    <div id="yayScreen">
+        <h1>Yayyy! 🎉 I love you!</h1>
+        <canvas id="fireworks"></canvas>
+    </div>
+
+    <script>
+        // Button logic
+        let yesSize = 1;
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const mainScreen = document.getElementById('mainScreen');
+        const yayScreen = document.getElementById('yayScreen');
+
+        noBtn.addEventListener('mouseover', moveNo);
+        noBtn.addEventListener('touchstart', moveNo); // For mobile
+
+        function moveNo() {
+            const randomX = Math.random() * 200 - 100;
+            const randomY = Math.random() * 100 - 50;
+            noBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
+            // Grow Yes button
+            yesSize += 0.2;
+            yesBtn.style.transform = `scale(${yesSize})`;
+        }
+
+        yesBtn.addEventListener('click', () => {
+            mainScreen.style.display = 'none';
+            yayScreen.style.display = 'flex';
+            startFireworks();
+            sendEmail();
+        });
+
+        // EmailJS setup (replace placeholders)
+        emailjs.init('3KN6x_wdX-Or0rt0D');
+
+        function sendEmail() {
+            emailjs.send('service_xap7wor', 'template_oxqgssd', {
+                from_name: 'Deesha',
+                message: 'Deesha clicked Yes!'
+            }).then(() => {
+                console.log('Email sent!');
+            }, (error) => {
+                console.log('Email failed:', error);
+            });
+        }
+
+        
+        // Fireworks animation (simple canvas version)
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 };
+                this.alpha = 1;
+                this.friction = 0.99;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= 0.01;
+            }
+        }
+
+        class Firework {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = { x: 0, y: Math.random() * -2.5 - 0.5 };
+                this.particles = [];
+                this.lifespan = 180;
+                this.hasExploded = false;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            explode() {
+                for (let i = 0; i < 50; i++) {
+                    this.particles.push(new Particle(this.x, this.y, this.color));
+                }
+            }
+            update() {
+                this.lifespan--;
+                if (this.lifespan <= 0 && !this.hasExploded) {
+                    this.explode();
+                    this.velocity = { x: 0, y: 0 };
+                    this.hasExploded = true;
+                } else if (this.lifespan > 0) {
+                    this.y += this.velocity.y;
+                }
+                this.particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            }
+        }
+
+        let fireworks = [];
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            fireworks.forEach((fw, index) => {
+                fw.update();
+                fw.draw();
+                if (fw.lifespan <= 0 && fw.particles.every(p => p.alpha <= 0)) {
+                    fireworks.splice(index, 1);
+                }
+            });
+            if (Math.random() < 0.015) {
+                const x = Math.random() * canvas.width;
+                const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
+                fireworks.push(new Firework(x, canvas.height, color));
+            }
+        }
+
+        function startFireworks() {
+            animate();
+        }
+    </script>
+</body>
+</html>
